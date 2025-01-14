@@ -86,4 +86,4 @@ const TableOverview = ({ onTableClick }) => {
   )
 }
 
-export default TableOverview
+export default TableOverview;
