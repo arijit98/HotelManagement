@@ -25,10 +25,20 @@ const MenuManagement = () => {
 
     // Fetch menu items on component load
     useEffect(() => {
+
+        const restaurantId = localStorage.getItem('restaurantId');
         const fetchMenuItems = async () => {
             try {
-                const response = await axios.get('http://localhost:8080/api/v1/menu')
-                setMenuItems(response.data) // Assuming the backend returns an array of menu items
+                const response = await axios.get(`http://localhost:8080/api/v1/menu/restaurants/${restaurantId}`);
+                 // Map backend response to match frontend structure
+            const formattedMenuItems = response.data.map((item) => ({
+                id: item.itemId, // Map itemId to id
+                name: item.itemName, // Map itemName to name
+                description: item.itemDescription, // Map itemDescription to description
+                price: item.itemPrice, // Map itemPrice to price
+            }));
+
+            setMenuItems(formattedMenuItems); 
             } catch (error) {
                 console.error('Error fetching menu items:', error)
             }
@@ -42,7 +52,7 @@ const MenuManagement = () => {
         itemName: '',
         itemDescription: '',
         itemPrice: 0.0,
-        itemCategory: '',
+        itemCategory: ''
     })
 
     const handleDialogOpen = () => setOpen(true)
@@ -58,8 +68,15 @@ const MenuManagement = () => {
 
     const addItem = async () => {
         try {
+            const restaurantId = localStorage.getItem('restaurantId'); // Retrieve restaurantId from localStorage
+
+            if (!restaurantId || restaurantId.trim() === '') {
+                console.error('Invalid or missing restaurant ID. Cannot add menu item.');
+                return;
+            }
+            axios.defaults.headers.common['Authorization'] = `Bearer ${localStorage.getItem('token')}`;
             // API call to add a new menu item
-            const response = await axios.post('http://localhost:8080/api/v1/menu', newItem)
+            const response = await axios.post('http://localhost:8080/api/v1/menu/${restaurantId}`', newItem)
             const createdItem = response.data
 
             // Update local state with the new item

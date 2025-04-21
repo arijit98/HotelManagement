@@ -2,23 +2,44 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { GoogleLogin } from '@react-oauth/google'; // Install `@react-oauth/google`
+import {jwtDecode} from 'jwt-decode'; 
 
 axios.defaults.baseURL = 'http://localhost:8080';
 
 function Login() {
-  const [email, setEmail] = useState('');
+  const [username, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post('/api/v1/auth/login', { email, password });
-      localStorage.setItem('token', response.data.token);
-      navigate(response.data.role === 'admin' ? '/admin' : '/staff');
+      const response = await axios.post('/api/v1/auth/login', { username, password });
+      const token = response.data;
+      localStorage.setItem('token', token);
+      console.log('Login successful:', response.data);
+  
+      const decodedToken = jwtDecode(token);
+      const role = decodedToken.role; // Extract the 'role' claim
+      console.log('Decoded role:', role);
+    
+      // Set token for axios
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  
+      // Check if user is linked to a restaurant
+      const restaurantResponse = await axios.get('/api/v1/restaurants/my');
+      if (restaurantResponse.status === 200) {
+        const restaurant = restaurantResponse.data;
+        localStorage.setItem('restaurantId', restaurant.id); // Store restaurant ID in local storage
+        navigate(role.toLowerCase() === 'admin' ? '/admin' : '/staff');
+      } else {
+        // No restaurant linked
+        navigate('/register-restaurant');
+      }
     } catch (error) {
-      console.error('Login failed:', error.response.data.message);
+      console.error('Login failed:', error.response?.data?.message || error.message);
     }
   };
+  
 
   const handleGoogleSuccess = async (response) => {
     try {
